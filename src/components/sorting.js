@@ -7,10 +7,27 @@ export function initSorting(columns) {
 
         if (action && action.name === 'sort') {
             // @todo: #3.1 — запомнить выбранный режим сортировки
-
+            action.dataset.value = sortMap[action.dataset.value];
+    
+            // Запоминаем поле сортировки (оно берется из data-field кнопки)
+            field = action.dataset.field;
+    
+            // Запоминаем направление сортировки (оно берется из обновленного data-value)
+            order = action.dataset.value;
             // @todo: #3.2 — сбросить сортировки остальных колонок
+            columns.forEach(column => {                                    // Перебираем элементы (в columns у нас массив кнопок)
+                if (column.dataset.field !== action.dataset.field) {    // Если это не та кнопка, что нажал пользователь
+                    column.dataset.value = 'none';                        // тогда сбрасываем её в начальное состояние
+                }
+            });
         } else {
             // @todo: #3.3 — получить выбранный режим сортировки
+            columns.forEach(column => {                        // Перебираем все наши кнопки сортировки
+                if (column.dataset.value !== 'none') {        // Ищем ту, что находится не в начальном состоянии (предполагаем, что одна)
+                    field = column.dataset.field;            // Сохраняем в переменных поле
+                    order = column.dataset.value;            // и направление сортировки
+                }
+            });
         }
 
         return sortCollection(data, field, order);
