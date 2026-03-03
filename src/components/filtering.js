@@ -1,71 +1,70 @@
-import {createComparison, defaultRules} from "../lib/compare.js";
-
-// @todo: #4.3 — настроить компаратор
-// Используем только defaultRules для строковых полей
-const compare = createComparison(defaultRules);
-
-export function initFiltering(elements, indexes) {
-    // @todo: #4.1 — заполнить выпадающие списки опциями
-    Object.keys(indexes).forEach((elementName) => {
-        const options = Object.values(indexes[elementName]).map(name => {
-            const option = document.createElement('option');
-            option.value = name;
-            option.textContent = name;
-            return option;
+export function initFiltering(elements) {
+    // Функция для заполнения выпадающих списков опциями
+    const updateIndexes = (elements, indexes) => {
+        Object.keys(indexes).forEach((elementName) => {
+            const select = elements[elementName];
+            if (!select) return;
+            
+            // Очищаем select
+            select.innerHTML = '';
+            
+            // Добавляем пустую опцию
+            const emptyOption = document.createElement('option');
+            emptyOption.value = '';
+            emptyOption.textContent = 'Все продавцы';
+            select.appendChild(emptyOption);
+            
+            // Добавляем опции из индексов
+            if (indexes[elementName] && typeof indexes[elementName] === 'object') {
+                Object.values(indexes[elementName]).forEach(name => {
+                    if (name) {
+                        const el = document.createElement('option');
+                        el.textContent = name;
+                        el.value = name;
+                        select.appendChild(el);
+                    }
+                });
+            }
         });
-        elements[elementName].append(...options);
-    });
+    };
 
-    return (data, state, action) => {
-        // @todo: #4.2 — обработать очистку поля
+    // Функция для применения фильтрации к запросу (ТОЧНО ПО ЗАДАНИЮ)
+    const applyFiltering = (query, state, action) => {
+        // Обработка очистки полей
         if (action && action.name === 'clear') {
             const fieldToClear = action.dataset.field;
             
             if (fieldToClear === 'date' && elements.searchByDate) {
                 elements.searchByDate.value = '';
-                state.date = '';
             } else if (fieldToClear === 'customer' && elements.searchByCustomer) {
                 elements.searchByCustomer.value = '';
-                state.customer = '';
             } else if (fieldToClear === 'seller' && elements.searchBySeller) {
                 elements.searchBySeller.value = '';
-                state.seller = '';
             } else if (fieldToClear === 'total') {
-                if (elements.totalFrom) {
-                    elements.totalFrom.value = '';
-                    state.totalFrom = '';
-                }
-                if (elements.totalTo) {
-                    elements.totalTo.value = '';
-                    state.totalTo = '';
-                }
+                if (elements.totalFrom) elements.totalFrom.value = '';
+                if (elements.totalTo) elements.totalTo.value = '';
             }
         }
 
-        // @todo: #4.5 — отфильтровать данные используя компаратор
-        console.log('Filtering with state:', state);
+        // Собираем параметры фильтрации (ТОЧНО КАК В ЗАДАНИИ)
+        const filter = {};
         
-        // Сначала применяем строковые фильтры через compare
-        let filtered = data.filter(row => compare(row, state));
-        
-        // Затем применяем числовые фильтры вручную
-        filtered = filtered.filter(row => {
-            const total = parseFloat(row.total);
-            
-            // Фильтр по минимальной сумме
-            if (state.totalFrom && total < parseFloat(state.totalFrom)) {
-                return false;
+        Object.keys(elements).forEach(key => {
+            const element = elements[key];
+            if (element && ['INPUT', 'SELECT'].includes(element.tagName) && element.value) {
+                // В задании указан именно такой формат: filter[${element.name}]
+                filter[`filter[${element.name}]`] = element.value;
             }
-            
-            // Фильтр по максимальной сумме
-            if (state.totalTo && total > parseFloat(state.totalTo)) {
-                return false;
-            }
-            
-            return true;
         });
         
-        console.log('Filtered rows:', filtered.length);
-        return filtered;
+        console.log('Filter params (exactly as in task):', filter);
+        
+        // Если есть параметры фильтрации, добавляем их к query
+        return Object.keys(filter).length ? Object.assign({}, query, filter) : query;
+    };
+
+    return {
+        updateIndexes,
+        applyFiltering
     };
 }
